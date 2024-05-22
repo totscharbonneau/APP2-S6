@@ -1,5 +1,6 @@
 #include <Wire.h>
 int AN_lumiere_in = 34;
+int AN_directionVENT = 35;
 int scl = 22;
 int sda = 21;
 int adress = 0x77; 
@@ -49,7 +50,8 @@ void setup() {
   Serial.begin(115200);
   Wire.begin();
   pinMode(AN_lumiere_in, INPUT);
- 
+  pinMode(AN_directionVENT, INPUT);
+
   uint_coefficients uint_data;
   uint_data = getCoefficient();
   data_coeff.c0 = utoi(uint_data.c0, 12);
@@ -72,7 +74,9 @@ void loop() {
   // Serial.println(read_Pressure());
   // humidity_temp();
   //lumiere();
-  pluie();
+  // pluie();
+  // direction();
+  wind();
 }
 
 int read_reg(int regadress){
@@ -105,6 +109,67 @@ void lumiere(){
   float lux = 0.0756f*lumval - 35;
   Serial.println(lux);
   delay(100);
+}
+
+void direction(){
+  int dirvalue = analogRead(AN_directionVENT);
+  int value[] = {226,1005,3925,3050};
+  char* directiontable[] = {"north","east","south","west"};
+  int smallestdelta = 1000;
+  int dirint;
+  for(int i = 0; i < 4; i++){
+    int delta = abs(dirvalue -value[i]);
+    if (delta < smallestdelta){
+      smallestdelta = delta;
+      dirint = i;
+    }
+  }
+  Serial.println(directiontable[dirint]);
+}
+
+void wind(){
+
+
+  {
+  if (millis() >= lastResetTime + 1000)
+  {
+    windSpeed = windSpeedClick * 2.4;
+    windSpeedClick = 0;
+    lastResetTime = millis();
+  }
+  else
+    windSpeedClick += 1;
+}
+  static bool oldClick = false;
+  static long start = millis();
+  static int clicks = 0;
+  bool val = digitalRead(27);
+  
+
+  if (oldClick)
+  {
+    if (val == 0)
+    {
+      clicks++;
+      oldClick = false;
+    }
+  }
+  else
+  {
+    if (val > 0)
+    {
+      oldClick = true;
+    }
+  }
+  float windSpeed = clicks * 1000.0 / (millis() - start);
+
+  if (millis() - start > 1000)
+  {
+    start = millis();
+    clicks = 0;
+  }
+
+  Serial.println(windSpeed);
 }
 
 uint_coefficients getCoefficient(){
@@ -245,18 +310,6 @@ void humidity_temp(){
   Serial.printf(" Humidite = %4.0f \%%  Temperature = %4.2f degreC \n", humidite, temperature);
 }
 
-float getRain()
-{
-    unsigned long time = pulseIn(pin, HIGH) + pulseIn(pin, LOW);
-    // Serial.printlnf("Time: %lu", time);
-
-    if(time == 0)
-    {
-        return 0;
-    }
-
-    return (1000000.0/time)*0.2794;
-}
 
 
 void configPressureTemp(){
@@ -276,61 +329,3 @@ void configPressureTemp(){
   Wire.write(byte(0b00000111));
   Wire.endTransmission();
 }
-
-// static void pressure_temperature_setup()
-// {
-//   Wire.begin();
-//   // Read coefficients
-//   uint8_t coefficients[18];
-//   int i = 0;
-//   Wire.beginTransmission(0x77);
-//   Wire.write(byte(0x10));
-//   Wire.endTransmission();
-
-//   Wire.requestFrom(0x77, sizeof(coefficients));
-//   while(Wire.available())
-//   {
-//     coefficients[i++] = Wire.read();
-//     if (i >= sizeof(coefficients))
-//       break;
-//   }
-
-//   c0  = (coefficients[0] << 4) + ((coefficients[1] >> 4) & 0x0F);
-//   c1  = ((coefficients[1] & 0x0F) << 8) + coefficients[2];
-//   c00 = (coefficients[3] << 12) + (coefficients[4] << 4) + (coefficients[5] >> 4);
-//   c10 = ((coefficients[5] & 0x0F) << 16) + (coefficients[6] << 8) + coefficients[7];
-//   c01 = (coefficients[8] << 8) + coefficients[9];
-//   c11 = (coefficients[10] << 8) + coefficients[11];
-//   c20 = (coefficients[12] << 8) + coefficients[13];
-//   c21 = (coefficients[14] << 8) + coefficients[15];
-//   c30 = (coefficients[16] << 8) + coefficients[17];
-  
-
-//   c0  = utoi(c0,  12);
-//   c1  = utoi(c1,  12);
-//   c00 = utoi(c00, 20);
-//   c10 = utoi(c10, 20);
-//   c01 = utoi(c01, 16);
-//   c11 = utoi(c11, 16);
-//   c20 = utoi(c20, 16);
-//   c21 = utoi(c21, 16);
-//   c30 = utoi(c30, 16);
-//   Serial.println("start");
-//   Serial.println("c0");
-//   Serial.println(c0);
-//   Serial.println(data_coeff.c0);
-
-//   Serial.println("c1");
-//   Serial.println(c1);
-//   Serial.println(data_coeff.c1);
-
-//   Serial.println(c00);
-//   Serial.println(c10);
-//   Serial.println(c01);
-//   Serial.println(c11);
-//   Serial.println(c20);
-//   Serial.println(c21);
-//   Serial.println(c30);
-// }
-
-
