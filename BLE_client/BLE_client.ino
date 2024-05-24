@@ -1,4 +1,6 @@
 /**
+ * Mis à jour par Charles-Étienne Côté (cotc1105) et Thomas Charbonneau (chat1002)
+ * 
  * A BLE client example that is rich in capabilities.
  * There is a lot new capabilities implemented.
  * author unknown
@@ -36,11 +38,23 @@ static void notifyCallback(
   uint8_t* pData,
   size_t length,
   bool isNotify) {
-    Serial.print("Notify callback for characteristic ");
-    Serial.print(pBLERemoteCharacteristic->getUUID().toString().c_str());
-    Serial.print(" of data length ");
-    Serial.println(length);
-    Serial.print("data: ");
+    BLEUUID tempUUID = pBLERemoteCharacteristic->getUUID();
+    char* characteristicName;
+    if(tempUUID.toString() == temperatureUUID.toString()) characteristicName = "Temperature";
+    else if(tempUUID.toString() == humiditeUUID.toString()) characteristicName = "Humidite";
+    else if(tempUUID.toString() == pressionUUID.toString()) characteristicName = "Pression";
+    else if(tempUUID.toString() == ensoleillementUUID.toString()) characteristicName = "Ensolleillement";
+    else if(tempUUID.toString() == pluieUUID.toString()) characteristicName = "Pluie";
+    else if(tempUUID.toString() == directionVentUUID.toString()) characteristicName = "Direction Vent";
+    else characteristicName = "Vitesse Vent";
+    //Serial.print("Notify callback for characteristic ");
+    Serial.print(characteristicName);
+    //Serial.print(" of data length ");
+    //Serial.println(length);
+    //Serial.print("data: ");
+    //Serial.write(pData, length);
+    //Serial.println();
+    Serial.print(" : ");
     Serial.write(pData, length);
     Serial.println();
 }
@@ -244,20 +258,8 @@ void loop() {
     doConnect = false;
   }
 
-  // If we are connected to a peer BLE Server, update the characteristic each time we are reached
-  // with the current time since boot.
   if (connected) {
-    String newValue = "Time since boot: " + String(millis()/1000);
-    Serial.println("Setting new characteristic value to \"" + newValue + "\"");
-    
-    // Set the characteristic's value to be the array of bytes that is actually a string.
-    pRemoteTemperature->writeValue(newValue.c_str(), newValue.length());
-    pRemoteHumidite->writeValue(newValue.c_str(), newValue.length());
-    pRemotePression->writeValue(newValue.c_str(), newValue.length());
-    pRemoteEnsoleillement->writeValue(newValue.c_str(), newValue.length());
-    pRemotePluie->writeValue(newValue.c_str(), newValue.length());
-    pRemoteDirectionVent->writeValue(newValue.c_str(), newValue.length());
-    pRemoteVitesseVent->writeValue(newValue.c_str(), newValue.length());
+
   }else if(doScan){
     BLEDevice::getScan()->start(0);  // this is just example to start scan after disconnect, most likely there is better way to do it in arduino
   }
